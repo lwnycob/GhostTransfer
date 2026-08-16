@@ -1,0 +1,39 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Android build tools (aapt + dalvik-exchange)
+      run: |
+        sudo apt-get update -qq
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          openjdk-21-jdk-headless aapt dalvik-exchange \
+          zipalign apksigner \
+          android-sdk-platform-23 libandroid-23-java
+
+    - name: Download NanoHTTPD source
+      run: |
+        mkdir -p app/src/main/java/fi/iki/elonen
+        curl -sSL \
+          "https://raw.githubusercontent.com/NanoHttpd/nanohttpd/nanohttpd-project-2.3.1/core/src/main/java/fi/iki/elonen/NanoHTTPD.java" \
+          -o app/src/main/java/fi/iki/elonen/NanoHTTPD.java
+
+    - name: Build APK
+      run: bash build_apk.sh
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ghost-transfer-v${{ github.run_number }}
+        path: build/ghost_transfer.apk
+        retention-days: 30
